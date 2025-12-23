@@ -7,168 +7,208 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; color: #e0e0e0; line-height: 1.6; }
-        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
-        header { text-align: center; margin-bottom: 40px; }
-        h1 { font-size: 2.5rem; color: #fff; margin-bottom: 10px; }
-        .subtitle { color: #a0a0a0; font-size: 1.1rem; }
-        .card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 30px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1); }
-        .card h2 { color: #fff; margin-bottom: 15px; font-size: 1.3rem; }
-        .card p { color: #b0b0b0; margin-bottom: 20px; }
-        .bookmarklet { display: inline-block; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: bold; cursor: grab; }
-        .instructions { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; margin-top: 15px; }
-        .instructions ol { margin-left: 20px; }
-        .instructions li { margin-bottom: 10px; color: #c0c0c0; }
-        textarea { width: 100%; height: 200px; padding: 15px; border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; background: rgba(0,0,0,0.3); color: #e0e0e0; font-size: 14px; resize: vertical; }
-        #preview { max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 20px; margin-top: 20px; }
-        .message { margin-bottom: 20px; padding: 15px; border-radius: 10px; }
-        .message.human { background: rgba(52,152,219,0.2); border-left: 4px solid #3498db; }
-        .message.assistant { background: rgba(231,76,60,0.2); border-left: 4px solid #e74c3c; }
-        .message-role { font-weight: bold; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase; }
-        .message.human .message-role { color: #3498db; }
-        .message.assistant .message-role { color: #e74c3c; }
-        .message-content { color: #d0d0d0; white-space: pre-wrap; }
-        .btn-group { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
-        .btn { padding: 12px 25px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
-        .btn-primary { background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
-        .btn-secondary { background: rgba(255,255,255,0.1); color: #e0e0e0; border: 1px solid rgba(255,255,255,0.2); }
-        .btn:disabled { background: #555; cursor: not-allowed; }
-        .status { padding: 10px 15px; border-radius: 8px; margin-top: 15px; display: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .container { max-width: 600px; width: 100%; }
+        .card { background: rgba(255,255,255,0.08); border-radius: 20px; padding: 40px; border: 1px solid rgba(255,255,255,0.1); }
+        h1 { color: #fff; font-size: 2rem; text-align: center; margin-bottom: 10px; }
+        .subtitle { color: #888; text-align: center; margin-bottom: 30px; }
+        .input-group { margin-bottom: 25px; }
+        .input-group label { display: block; color: #aaa; margin-bottom: 8px; font-size: 0.9rem; }
+        .input-group input { width: 100%; padding: 15px; border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(0,0,0,0.3); color: #fff; font-size: 1rem; transition: border-color 0.3s; }
+        .input-group input:focus { outline: none; border-color: #3498db; }
+        .input-group input::placeholder { color: #555; }
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(231,76,60,0.4); }
+        .btn-primary:disabled { background: #444; cursor: not-allowed; transform: none; box-shadow: none; }
+        .status { margin-top: 20px; padding: 15px; border-radius: 10px; text-align: center; display: none; }
+        .status.loading { display: block; background: rgba(52,152,219,0.2); border: 1px solid #3498db; color: #3498db; }
         .status.success { display: block; background: rgba(39,174,96,0.2); border: 1px solid #27ae60; color: #27ae60; }
         .status.error { display: block; background: rgba(231,76,60,0.2); border: 1px solid #e74c3c; color: #e74c3c; }
-        .badge { background: #27ae60; color: white; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; margin-left: 10px; }
-        .pdf-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .option-group label { display: block; margin-bottom: 5px; color: #a0a0a0; font-size: 0.9rem; }
-        .option-group input { width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(0,0,0,0.3); color: #e0e0e0; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #3498db; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 10px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .help { margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .help p { color: #666; font-size: 0.85rem; text-align: center; }
+        .preview { margin-top: 20px; max-height: 300px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 15px; display: none; }
+        .preview.show { display: block; }
+        .message { margin-bottom: 15px; padding: 12px; border-radius: 8px; }
+        .message.human { background: rgba(52,152,219,0.2); border-left: 3px solid #3498db; }
+        .message.assistant { background: rgba(231,76,60,0.2); border-left: 3px solid #e74c3c; }
+        .message-role { font-weight: bold; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 5px; }
+        .message.human .message-role { color: #3498db; }
+        .message.assistant .message-role { color: #e74c3c; }
+        .message-content { color: #ccc; font-size: 0.9rem; white-space: pre-wrap; word-break: break-word; }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
+        <div class="card">
             <h1>Claude Chat to PDF</h1>
-            <p class="subtitle">Claudeの公開チャットをPDFとして保存</p>
-        </header>
+            <p class="subtitle">共有リンクからPDFを生成</p>
 
-        <div class="card">
-            <h2>方法1: ブックマークレット<span class="badge">おすすめ</span></h2>
-            <p>Claudeの公開チャットページで実行できます。下のボタンをブックマークバーにドラッグしてください。</p>
-            <a class="bookmarklet" id="bookmarkletLink">Chat to PDF</a>
-            <div class="instructions">
-                <ol>
-                    <li>上のボタンをブックマークバーにドラッグ</li>
-                    <li>Claudeの公開チャットページを開く</li>
-                    <li>ブックマークをクリック → JSONがダウンロード</li>
-                    <li>下の「JSONを読み込む」で選択</li>
-                </ol>
+            <div class="input-group">
+                <label>共有リンクURL</label>
+                <input type="url" id="urlInput" placeholder="https://claude.ai/share/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
             </div>
-        </div>
 
-        <div class="card">
-            <h2>JSONファイルを読み込む</h2>
-            <p>エクスポートしたJSONファイルを読み込みます。</p>
-            <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
-            <button class="btn btn-secondary" onclick="document.getElementById('jsonFileInput').click()">JSONを選択</button>
-            <div id="fileStatus" class="status"></div>
-        </div>
+            <button class="btn btn-primary" id="exportBtn" onclick="convertToPDF()">PDFとして出力</button>
 
-        <div class="card">
-            <h2>方法2: 手動ペースト</h2>
-            <p>「Human:」と「Assistant:」で区切ったチャット内容を貼り付けてください。</p>
-            <textarea id="chatInput" placeholder="Human: こんにちは
-Assistant: こんにちは！何かお手伝いできることはありますか？"></textarea>
-            <button class="btn btn-secondary" onclick="parseManualInput()" style="margin-top:15px;">解析する</button>
-        </div>
+            <div id="status" class="status"></div>
+            <div id="preview" class="preview"></div>
 
-        <div class="card">
-            <h2>プレビュー</h2>
-            <div class="pdf-options">
-                <div class="option-group">
-                    <label>ファイル名</label>
-                    <input type="text" id="fileName" value="claude-chat" placeholder="ファイル名">
-                </div>
-                <div class="option-group">
-                    <label>タイトル</label>
-                    <input type="text" id="pdfTitle" value="Claude Chat Log" placeholder="PDFタイトル">
-                </div>
-            </div>
-            <div id="preview"><p style="color:#606060;text-align:center;">チャットデータを読み込むとここに表示されます</p></div>
-            <div class="btn-group">
-                <button class="btn btn-primary" id="exportBtn" onclick="exportToPDF()" disabled>PDFとして保存</button>
-                <button class="btn btn-secondary" onclick="clearAll()">クリア</button>
+            <div class="help">
+                <p>Claudeの共有チャットURL（claude.ai/share/...）を貼り付けて、ボタンを押すだけ！</p>
             </div>
         </div>
     </div>
 
     <script>
-        let chatMessages = [];
+        const CORS_PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?'
+        ];
 
-        // ブックマークレットのコード
-        const bookmarkletCode = `javascript:(function(){var m=[];var els=document.querySelectorAll('[data-testid]');els.forEach(function(e){var t=e.getAttribute('data-testid');if(t&&t.includes('message')){var r=t.includes('human')?'human':'assistant';var c=e.innerText.trim();if(c)m.push({role:r,content:c})}});if(m.length===0){document.querySelectorAll('.prose').forEach(function(e){var p=e.closest('[class*=human]')||e.closest('[class*=user]');m.push({role:p?'human':'assistant',content:e.innerText.trim()})})}if(m.length>0){var b=new Blob([JSON.stringify(m)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='claude-chat.json';a.click();alert('JSONをエクスポートしました')}else{alert('チャットが見つかりませんでした')}})();`;
-
-        document.getElementById('bookmarkletLink').href = bookmarkletCode;
-
-        // JSONファイル読み込み
-        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    chatMessages = JSON.parse(event.target.result);
-                    renderPreview();
-                    document.getElementById('fileStatus').className = 'status success';
-                    document.getElementById('fileStatus').textContent = 'JSONを読み込みました: ' + chatMessages.length + ' メッセージ';
-                    document.getElementById('exportBtn').disabled = false;
-                } catch (err) {
-                    document.getElementById('fileStatus').className = 'status error';
-                    document.getElementById('fileStatus').textContent = 'JSONの解析に失敗しました';
-                }
-            };
-            reader.readAsText(file);
-        });
-
-        // 手動入力の解析
-        function parseManualInput() {
-            const text = document.getElementById('chatInput').value;
-            if (!text.trim()) return;
-
-            chatMessages = [];
-            const parts = text.split(/(?=Human:|Assistant:)/i);
-
-            parts.forEach(part => {
-                const trimmed = part.trim();
-                if (!trimmed) return;
-
-                if (trimmed.toLowerCase().startsWith('human:')) {
-                    chatMessages.push({ role: 'human', content: trimmed.substring(6).trim() });
-                } else if (trimmed.toLowerCase().startsWith('assistant:')) {
-                    chatMessages.push({ role: 'assistant', content: trimmed.substring(10).trim() });
-                }
-            });
-
-            if (chatMessages.length > 0) {
-                renderPreview();
-                document.getElementById('exportBtn').disabled = false;
-            }
-        }
-
-        // プレビュー表示
-        function renderPreview() {
+        async function convertToPDF() {
+            const url = document.getElementById('urlInput').value.trim();
+            const status = document.getElementById('status');
             const preview = document.getElementById('preview');
-            if (chatMessages.length === 0) {
-                preview.innerHTML = '<p style="color:#606060;text-align:center;">チャットデータを読み込むとここに表示されます</p>';
+            const btn = document.getElementById('exportBtn');
+
+            if (!url) {
+                showStatus('error', 'URLを入力してください');
                 return;
             }
 
+            if (!url.includes('claude.ai/share/')) {
+                showStatus('error', 'claude.ai/share/ のURLを入力してください');
+                return;
+            }
+
+            btn.disabled = true;
+            showStatus('loading', '<span class="spinner"></span>チャットを取得中...');
+            preview.className = 'preview';
+
+            try {
+                const html = await fetchWithProxy(url);
+                const messages = parseChat(html);
+
+                if (messages.length === 0) {
+                    showStatus('error', 'チャットの取得に失敗しました。URLを確認してください。');
+                    btn.disabled = false;
+                    return;
+                }
+
+                showPreview(messages);
+                showStatus('loading', '<span class="spinner"></span>PDFを生成中...');
+
+                await new Promise(r => setTimeout(r, 300));
+                generatePDF(messages);
+
+                showStatus('success', 'PDFをダウンロードしました！ (' + messages.length + 'メッセージ)');
+            } catch (err) {
+                console.error(err);
+                showStatus('error', '取得に失敗しました: ' + err.message);
+            }
+
+            btn.disabled = false;
+        }
+
+        async function fetchWithProxy(url) {
+            for (const proxy of CORS_PROXIES) {
+                try {
+                    const res = await fetch(proxy + encodeURIComponent(url));
+                    if (res.ok) {
+                        return await res.text();
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            throw new Error('プロキシ経由での取得に失敗しました');
+        }
+
+        function parseChat(html) {
+            const messages = [];
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // Method 1: data-testid属性から取得
+            doc.querySelectorAll('[data-testid*="message"]').forEach(el => {
+                const testId = el.getAttribute('data-testid') || '';
+                const role = testId.includes('human') || testId.includes('user') ? 'human' : 'assistant';
+                const content = el.innerText.trim();
+                if (content && content.length > 0) {
+                    messages.push({ role, content });
+                }
+            });
+
+            // Method 2: クラス名から取得
+            if (messages.length === 0) {
+                doc.querySelectorAll('[class*="human"], [class*="user"], [class*="assistant"], [class*="claude"]').forEach(el => {
+                    const cls = el.className || '';
+                    const isHuman = cls.includes('human') || cls.includes('user');
+                    const content = el.innerText.trim();
+                    if (content && content.length > 10) {
+                        messages.push({ role: isHuman ? 'human' : 'assistant', content });
+                    }
+                });
+            }
+
+            // Method 3: prose/message要素から
+            if (messages.length === 0) {
+                doc.querySelectorAll('.prose, [class*="message-content"]').forEach(el => {
+                    const parent = el.closest('[class*="human"]') || el.closest('[class*="user"]');
+                    const content = el.innerText.trim();
+                    if (content && content.length > 5) {
+                        messages.push({ role: parent ? 'human' : 'assistant', content });
+                    }
+                });
+            }
+
+            // Method 4: JSON-LDまたはscriptタグから
+            if (messages.length === 0) {
+                doc.querySelectorAll('script').forEach(script => {
+                    const text = script.textContent || '';
+                    if (text.includes('"messages"') || text.includes('"content"')) {
+                        try {
+                            const match = text.match(/\{[\s\S]*"messages"[\s\S]*\}/);
+                            if (match) {
+                                const data = JSON.parse(match[0]);
+                                if (data.messages) {
+                                    data.messages.forEach(m => {
+                                        messages.push({ role: m.role || 'assistant', content: m.content || '' });
+                                    });
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                });
+            }
+
+            return messages;
+        }
+
+        function showStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.innerHTML = message;
+        }
+
+        function showPreview(messages) {
+            const preview = document.getElementById('preview');
             let html = '';
-            chatMessages.forEach(msg => {
+            messages.slice(0, 5).forEach(msg => {
+                const shortContent = msg.content.length > 100 ? msg.content.substring(0, 100) + '...' : msg.content;
                 html += '<div class="message ' + msg.role + '">';
-                html += '<div class="message-role">' + (msg.role === 'human' ? 'Human' : 'Assistant') + '</div>';
-                html += '<div class="message-content">' + escapeHtml(msg.content) + '</div>';
+                html += '<div class="message-role">' + (msg.role === 'human' ? 'You' : 'Claude') + '</div>';
+                html += '<div class="message-content">' + escapeHtml(shortContent) + '</div>';
                 html += '</div>';
             });
+            if (messages.length > 5) {
+                html += '<p style="color:#666;text-align:center;margin-top:10px;">... 他 ' + (messages.length - 5) + ' メッセージ</p>';
+            }
             preview.innerHTML = html;
+            preview.className = 'preview show';
         }
 
         function escapeHtml(text) {
@@ -177,61 +217,49 @@ Assistant: こんにちは！何かお手伝いできることはありますか
             return div.innerHTML;
         }
 
-        // PDF出力
-        function exportToPDF() {
-            if (chatMessages.length === 0) return;
-
+        function generatePDF(messages) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
-            const title = document.getElementById('pdfTitle').value || 'Claude Chat Log';
-            const fileName = document.getElementById('fileName').value || 'claude-chat';
 
             let y = 20;
             const pageHeight = 280;
             const margin = 20;
-            const lineHeight = 7;
+            const lineHeight = 6;
             const maxWidth = 170;
 
-            // タイトル
-            doc.setFontSize(18);
-            doc.text(title, margin, y);
-            y += 15;
+            doc.setFontSize(16);
+            doc.setTextColor(50);
+            doc.text('Claude Chat Log', margin, y);
+            y += 10;
 
-            // 日付
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setTextColor(128);
-            doc.text('Generated: ' + new Date().toLocaleString('ja-JP'), margin, y);
-            y += 15;
+            doc.text(new Date().toLocaleString('ja-JP'), margin, y);
+            y += 12;
 
-            doc.setTextColor(0);
-            doc.setFontSize(11);
+            doc.setFontSize(10);
 
-            chatMessages.forEach(msg => {
-                // ロール表示
-                if (msg.role === 'human') {
-                    doc.setTextColor(52, 152, 219);
-                    doc.setFont(undefined, 'bold');
-                } else {
-                    doc.setTextColor(231, 76, 60);
-                    doc.setFont(undefined, 'bold');
-                }
-
-                if (y > pageHeight) {
+            messages.forEach(msg => {
+                if (y > pageHeight - 20) {
                     doc.addPage();
                     y = 20;
                 }
 
-                doc.text(msg.role === 'human' ? 'Human:' : 'Assistant:', margin, y);
+                if (msg.role === 'human') {
+                    doc.setTextColor(52, 152, 219);
+                } else {
+                    doc.setTextColor(192, 57, 43);
+                }
+                doc.setFont(undefined, 'bold');
+                doc.text(msg.role === 'human' ? 'You:' : 'Claude:', margin, y);
                 y += lineHeight;
 
-                // 内容
-                doc.setTextColor(0);
+                doc.setTextColor(60);
                 doc.setFont(undefined, 'normal');
 
                 const lines = doc.splitTextToSize(msg.content, maxWidth);
                 lines.forEach(line => {
-                    if (y > pageHeight) {
+                    if (y > pageHeight - 10) {
                         doc.addPage();
                         y = 20;
                     }
@@ -239,20 +267,15 @@ Assistant: こんにちは！何かお手伝いできることはありますか
                     y += lineHeight;
                 });
 
-                y += 5;
+                y += 4;
             });
 
-            doc.save(fileName + '.pdf');
+            doc.save('claude-chat.pdf');
         }
 
-        function clearAll() {
-            chatMessages = [];
-            document.getElementById('chatInput').value = '';
-            document.getElementById('preview').innerHTML = '<p style="color:#606060;text-align:center;">チャットデータを読み込むとここに表示されます</p>';
-            document.getElementById('exportBtn').disabled = true;
-            document.getElementById('fileStatus').className = 'status';
-            document.getElementById('jsonFileInput').value = '';
-        }
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') convertToPDF();
+        });
     </script>
 </body>
 </html>
