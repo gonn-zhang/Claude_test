@@ -64,13 +64,16 @@
 
     <script>
         const CORS_PROXIES = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?'
+            { url: 'https://api.allorigins.win/raw?url=', name: 'AllOrigins' },
+            { url: 'https://corsproxy.io/?', name: 'CORSProxy.io' },
+            { url: 'https://api.codetabs.com/v1/proxy?quest=', name: 'CodeTabs' }
         ];
+
+        const TIMEOUT_MS = 30000;
+        const MAX_RETRIES = 2;
 
         async function convertToPDF() {
             const url = document.getElementById('urlInput').value.trim();
-            const status = document.getElementById('status');
             const preview = document.getElementById('preview');
             const btn = document.getElementById('exportBtn');
 
@@ -85,46 +88,92 @@
             }
 
             btn.disabled = true;
-            showStatus('loading', '<span class="spinner"></span>チャットを取得中...');
             preview.className = 'preview';
 
             try {
+                showStatus('loading', '<span class="spinner"></span>チャットを取得中...');
+
                 const html = await fetchWithProxy(url);
+
+                if (!html || html.length < 100) {
+                    throw new Error('ページの内容が取得できませんでした');
+                }
+
+                showStatus('loading', '<span class="spinner"></span>チャットを解析中...');
+                await sleep(100);
+
                 const messages = parseChat(html);
 
                 if (messages.length === 0) {
-                    showStatus('error', 'チャットの取得に失敗しました。URLを確認してください。');
+                    showStatus('error', 'チャットの解析に失敗しました。共有リンクが有効か確認してください。');
                     btn.disabled = false;
                     return;
                 }
 
                 showPreview(messages);
-                showStatus('loading', '<span class="spinner"></span>PDFを生成中...');
+                showStatus('loading', '<span class="spinner"></span>PDF生成中... (' + messages.length + 'メッセージ)');
+                await sleep(200);
 
-                await new Promise(r => setTimeout(r, 300));
                 generatePDF(messages);
 
                 showStatus('success', 'PDFをダウンロードしました！ (' + messages.length + 'メッセージ)');
             } catch (err) {
-                console.error(err);
-                showStatus('error', '取得に失敗しました: ' + err.message);
+                console.error('Error:', err);
+                showStatus('error', err.message || '不明なエラーが発生しました');
             }
 
             btn.disabled = false;
         }
 
+        function sleep(ms) {
+            return new Promise(r => setTimeout(r, ms));
+        }
+
+        async function fetchWithTimeout(url, timeout) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                return res;
+            } catch (e) {
+                clearTimeout(timeoutId);
+                throw e;
+            }
+        }
+
         async function fetchWithProxy(url) {
-            for (const proxy of CORS_PROXIES) {
-                try {
-                    const res = await fetch(proxy + encodeURIComponent(url));
-                    if (res.ok) {
-                        return await res.text();
+            let lastError = null;
+
+            for (let retry = 0; retry <= MAX_RETRIES; retry++) {
+                for (const proxy of CORS_PROXIES) {
+                    try {
+                        const proxyUrl = proxy.url + encodeURIComponent(url);
+                        showStatus('loading', '<span class="spinner"></span>' + proxy.name + ' 経由で取得中...' + (retry > 0 ? ' (リトライ ' + retry + ')' : ''));
+
+                        const res = await fetchWithTimeout(proxyUrl, TIMEOUT_MS);
+
+                        if (res.ok) {
+                            const text = await res.text();
+                            if (text && text.length > 500) {
+                                return text;
+                            }
+                        }
+                    } catch (e) {
+                        lastError = e;
+                        console.log(proxy.name + ' failed:', e.message);
+                        continue;
                     }
-                } catch (e) {
-                    continue;
+                }
+
+                if (retry < MAX_RETRIES) {
+                    showStatus('loading', '<span class="spinner"></span>再試行中... (' + (retry + 1) + '/' + MAX_RETRIES + ')');
+                    await sleep(1000 * (retry + 1));
                 }
             }
-            throw new Error('プロキシ経由での取得に失敗しました');
+
+            throw new Error('全てのプロキシで取得に失敗しました。時間をおいて再度お試しください。');
         }
 
         function parseChat(html) {
@@ -224,22 +273,25 @@
             let y = 20;
             const pageHeight = 280;
             const margin = 20;
-            const lineHeight = 6;
+            const lineHeight = 5;
             const maxWidth = 170;
+            const maxCharsPerMessage = 50000;
 
-            doc.setFontSize(16);
+            doc.setFontSize(14);
             doc.setTextColor(50);
             doc.text('Claude Chat Log', margin, y);
+            y += 8;
+
+            doc.setFontSize(8);
+            doc.setTextColor(128);
+            doc.text(new Date().toLocaleString('ja-JP'), margin, y);
             y += 10;
 
             doc.setFontSize(9);
-            doc.setTextColor(128);
-            doc.text(new Date().toLocaleString('ja-JP'), margin, y);
-            y += 12;
 
-            doc.setFontSize(10);
+            for (let i = 0; i < messages.length; i++) {
+                const msg = messages[i];
 
-            messages.forEach(msg => {
                 if (y > pageHeight - 20) {
                     doc.addPage();
                     y = 20;
@@ -257,20 +309,38 @@
                 doc.setTextColor(60);
                 doc.setFont(undefined, 'normal');
 
-                const lines = doc.splitTextToSize(msg.content, maxWidth);
-                lines.forEach(line => {
+                let content = msg.content || '';
+                if (content.length > maxCharsPerMessage) {
+                    content = content.substring(0, maxCharsPerMessage) + '... (truncated)';
+                }
+
+                const lines = doc.splitTextToSize(content, maxWidth);
+                const maxLinesPerMessage = 500;
+                const linesToRender = lines.slice(0, maxLinesPerMessage);
+
+                for (let j = 0; j < linesToRender.length; j++) {
                     if (y > pageHeight - 10) {
                         doc.addPage();
                         y = 20;
                     }
-                    doc.text(line, margin, y);
+                    doc.text(linesToRender[j], margin, y);
                     y += lineHeight;
-                });
+                }
 
-                y += 4;
-            });
+                if (lines.length > maxLinesPerMessage) {
+                    doc.text('... (continued)', margin, y);
+                    y += lineHeight;
+                }
 
-            doc.save('claude-chat.pdf');
+                y += 3;
+            }
+
+            try {
+                doc.save('claude-chat.pdf');
+            } catch (e) {
+                console.error('PDF save error:', e);
+                throw new Error('PDFの保存に失敗しました');
+            }
         }
 
         document.getElementById('urlInput').addEventListener('keypress', function(e) {
