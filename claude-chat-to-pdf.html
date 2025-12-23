@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Chat to PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; color: #e0e0e0; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        header { text-align: center; margin-bottom: 40px; }
+        h1 { font-size: 2.5rem; color: #fff; margin-bottom: 10px; }
+        .subtitle { color: #a0a0a0; font-size: 1.1rem; }
+        .card { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 30px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1); }
+        .card h2 { color: #fff; margin-bottom: 15px; font-size: 1.3rem; }
+        .card p { color: #b0b0b0; margin-bottom: 20px; }
+        .bookmarklet { display: inline-block; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: bold; cursor: grab; }
+        .instructions { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; margin-top: 15px; }
+        .instructions ol { margin-left: 20px; }
+        .instructions li { margin-bottom: 10px; color: #c0c0c0; }
+        textarea { width: 100%; height: 200px; padding: 15px; border: 2px solid rgba(255,255,255,0.1); border-radius: 10px; background: rgba(0,0,0,0.3); color: #e0e0e0; font-size: 14px; resize: vertical; }
+        #preview { max-height: 400px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .message { margin-bottom: 20px; padding: 15px; border-radius: 10px; }
+        .message.human { background: rgba(52,152,219,0.2); border-left: 4px solid #3498db; }
+        .message.assistant { background: rgba(231,76,60,0.2); border-left: 4px solid #e74c3c; }
+        .message-role { font-weight: bold; margin-bottom: 8px; font-size: 0.85rem; text-transform: uppercase; }
+        .message.human .message-role { color: #3498db; }
+        .message.assistant .message-role { color: #e74c3c; }
+        .message-content { color: #d0d0d0; white-space: pre-wrap; }
+        .btn-group { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .btn { padding: 12px 25px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        .btn-primary { background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #e0e0e0; border: 1px solid rgba(255,255,255,0.2); }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+        .status { padding: 10px 15px; border-radius: 8px; margin-top: 15px; display: none; }
+        .status.success { display: block; background: rgba(39,174,96,0.2); border: 1px solid #27ae60; color: #27ae60; }
+        .status.error { display: block; background: rgba(231,76,60,0.2); border: 1px solid #e74c3c; color: #e74c3c; }
+        .badge { background: #27ae60; color: white; font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; margin-left: 10px; }
+        .pdf-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .option-group label { display: block; margin-bottom: 5px; color: #a0a0a0; font-size: 0.9rem; }
+        .option-group input { width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(0,0,0,0.3); color: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Claude Chat to PDF</h1>
+            <p class="subtitle">Claudeの公開チャットをPDFとして保存</p>
+        </header>
+
+        <div class="card">
+            <h2>方法1: ブックマークレット<span class="badge">おすすめ</span></h2>
+            <p>Claudeの公開チャットページで実行できます。下のボタンをブックマークバーにドラッグしてください。</p>
+            <a class="bookmarklet" id="bookmarkletLink">Chat to PDF</a>
+            <div class="instructions">
+                <ol>
+                    <li>上のボタンをブックマークバーにドラッグ</li>
+                    <li>Claudeの公開チャットページを開く</li>
+                    <li>ブックマークをクリック → JSONがダウンロード</li>
+                    <li>下の「JSONを読み込む」で選択</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>JSONファイルを読み込む</h2>
+            <p>エクスポートしたJSONファイルを読み込みます。</p>
+            <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
+            <button class="btn btn-secondary" onclick="document.getElementById('jsonFileInput').click()">JSONを選択</button>
+            <div id="fileStatus" class="status"></div>
+        </div>
+
+        <div class="card">
+            <h2>方法2: 手動ペースト</h2>
+            <p>「Human:」と「Assistant:」で区切ったチャット内容を貼り付けてください。</p>
+            <textarea id="chatInput" placeholder="Human: こんにちは
+Assistant: こんにちは！何かお手伝いできることはありますか？"></textarea>
+            <button class="btn btn-secondary" onclick="parseManualInput()" style="margin-top:15px;">解析する</button>
+        </div>
+
+        <div class="card">
+            <h2>プレビュー</h2>
+            <div class="pdf-options">
+                <div class="option-group">
+                    <label>ファイル名</label>
+                    <input type="text" id="fileName" value="claude-chat" placeholder="ファイル名">
+                </div>
+                <div class="option-group">
+                    <label>タイトル</label>
+                    <input type="text" id="pdfTitle" value="Claude Chat Log" placeholder="PDFタイトル">
+                </div>
+            </div>
+            <div id="preview"><p style="color:#606060;text-align:center;">チャットデータを読み込むとここに表示されます</p></div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="exportBtn" onclick="exportToPDF()" disabled>PDFとして保存</button>
+                <button class="btn btn-secondary" onclick="clearAll()">クリア</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chatMessages = [];
+
+        // ブックマークレットのコード
+        const bookmarkletCode = `javascript:(function(){var m=[];var els=document.querySelectorAll('[data-testid]');els.forEach(function(e){var t=e.getAttribute('data-testid');if(t&&t.includes('message')){var r=t.includes('human')?'human':'assistant';var c=e.innerText.trim();if(c)m.push({role:r,content:c})}});if(m.length===0){document.querySelectorAll('.prose').forEach(function(e){var p=e.closest('[class*=human]')||e.closest('[class*=user]');m.push({role:p?'human':'assistant',content:e.innerText.trim()})})}if(m.length>0){var b=new Blob([JSON.stringify(m)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='claude-chat.json';a.click();alert('JSONをエクスポートしました')}else{alert('チャットが見つかりませんでした')}})();`;
+
+        document.getElementById('bookmarkletLink').href = bookmarkletCode;
+
+        // JSONファイル読み込み
+        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    chatMessages = JSON.parse(event.target.result);
+                    renderPreview();
+                    document.getElementById('fileStatus').className = 'status success';
+                    document.getElementById('fileStatus').textContent = 'JSONを読み込みました: ' + chatMessages.length + ' メッセージ';
+                    document.getElementById('exportBtn').disabled = false;
+                } catch (err) {
+                    document.getElementById('fileStatus').className = 'status error';
+                    document.getElementById('fileStatus').textContent = 'JSONの解析に失敗しました';
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // 手動入力の解析
+        function parseManualInput() {
+            const text = document.getElementById('chatInput').value;
+            if (!text.trim()) return;
+
+            chatMessages = [];
+            const parts = text.split(/(?=Human:|Assistant:)/i);
+
+            parts.forEach(part => {
+                const trimmed = part.trim();
+                if (!trimmed) return;
+
+                if (trimmed.toLowerCase().startsWith('human:')) {
+                    chatMessages.push({ role: 'human', content: trimmed.substring(6).trim() });
+                } else if (trimmed.toLowerCase().startsWith('assistant:')) {
+                    chatMessages.push({ role: 'assistant', content: trimmed.substring(10).trim() });
+                }
+            });
+
+            if (chatMessages.length > 0) {
+                renderPreview();
+                document.getElementById('exportBtn').disabled = false;
+            }
+        }
+
+        // プレビュー表示
+        function renderPreview() {
+            const preview = document.getElementById('preview');
+            if (chatMessages.length === 0) {
+                preview.innerHTML = '<p style="color:#606060;text-align:center;">チャットデータを読み込むとここに表示されます</p>';
+                return;
+            }
+
+            let html = '';
+            chatMessages.forEach(msg => {
+                html += '<div class="message ' + msg.role + '">';
+                html += '<div class="message-role">' + (msg.role === 'human' ? 'Human' : 'Assistant') + '</div>';
+                html += '<div class="message-content">' + escapeHtml(msg.content) + '</div>';
+                html += '</div>';
+            });
+            preview.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // PDF出力
+        function exportToPDF() {
+            if (chatMessages.length === 0) return;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const title = document.getElementById('pdfTitle').value || 'Claude Chat Log';
+            const fileName = document.getElementById('fileName').value || 'claude-chat';
+
+            let y = 20;
+            const pageHeight = 280;
+            const margin = 20;
+            const lineHeight = 7;
+            const maxWidth = 170;
+
+            // タイトル
+            doc.setFontSize(18);
+            doc.text(title, margin, y);
+            y += 15;
+
+            // 日付
+            doc.setFontSize(10);
+            doc.setTextColor(128);
+            doc.text('Generated: ' + new Date().toLocaleString('ja-JP'), margin, y);
+            y += 15;
+
+            doc.setTextColor(0);
+            doc.setFontSize(11);
+
+            chatMessages.forEach(msg => {
+                // ロール表示
+                if (msg.role === 'human') {
+                    doc.setTextColor(52, 152, 219);
+                    doc.setFont(undefined, 'bold');
+                } else {
+                    doc.setTextColor(231, 76, 60);
+                    doc.setFont(undefined, 'bold');
+                }
+
+                if (y > pageHeight) {
+                    doc.addPage();
+                    y = 20;
+                }
+
+                doc.text(msg.role === 'human' ? 'Human:' : 'Assistant:', margin, y);
+                y += lineHeight;
+
+                // 内容
+                doc.setTextColor(0);
+                doc.setFont(undefined, 'normal');
+
+                const lines = doc.splitTextToSize(msg.content, maxWidth);
+                lines.forEach(line => {
+                    if (y > pageHeight) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.text(line, margin, y);
+                    y += lineHeight;
+                });
+
+                y += 5;
+            });
+
+            doc.save(fileName + '.pdf');
+        }
+
+        function clearAll() {
+            chatMessages = [];
+            document.getElementById('chatInput').value = '';
+            document.getElementById('preview').innerHTML = '<p style="color:#606060;text-align:center;">チャットデータを読み込むとここに表示されます</p>';
+            document.getElementById('exportBtn').disabled = true;
+            document.getElementById('fileStatus').className = 'status';
+            document.getElementById('jsonFileInput').value = '';
+        }
+    </script>
+</body>
+</html>
