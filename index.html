@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Export Tool - Bookmarklet Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .section h3 {
+            color: #764ba2;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .bookmarklet-box {
+            background: #f7f7f7;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .bookmarklet-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .bookmarklet-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .bookmarklet-button:active {
+            transform: translateY(0);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            margin: 15px 0;
+            padding-left: 50px;
+            position: relative;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .supported-platforms {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .platform {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+
+        .platform.supported {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .limitations ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .limitations li {
+            margin: 8px 0;
+        }
+
+        #status {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        #status.show {
+            display: block;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Chat Export Tool</h1>
+            <p>ChatGPT / Claude / Gemini の公開チャットをPDF化</p>
+        </div>
+
+        <div class="content">
+            <!-- 使い方セクション -->
+            <div class="section">
+                <h2>🚀 使い方（3ステップ）</h2>
+                <ol class="steps">
+                    <li>
+                        <strong>Bookmarkletを取得</strong><br>
+                        下のボタンをクリックしてブックマークレットをクリップボードにコピーします。
+                    </li>
+                    <li>
+                        <strong>ブックマークに登録</strong><br>
+                        ブラウザのブックマークバーに新しいブックマークを作成し、URLにコピーしたコードを貼り付けます。
+                    </li>
+                    <li>
+                        <strong>共有ページで実行</strong><br>
+                        ChatGPT/Claude/Geminiの公開共有リンクを開き、登録したブックマークをクリックします。
+                    </li>
+                </ol>
+
+                <div class="bookmarklet-box">
+                    <button id="copyBookmarklet" class="bookmarklet-button">
+                        📋 Bookmarklet をコピー
+                    </button>
+                    <div id="status"></div>
+                    <p style="margin-top: 15px; color: #6c757d; font-size: 0.9em;">
+                        クリック後、ブラウザのブックマークマネージャーで新規ブックマークを作成し、<br>
+                        URLフィールドに貼り付けてください。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 対応プラットフォーム -->
+            <div class="section">
+                <h2>✅ 対応プラットフォーム</h2>
+                <div class="supported-platforms">
+                    <div class="platform supported">
+                        <strong>ChatGPT</strong><br>
+                        <small>chatgpt.com/share/*</small>
+                    </div>
+                    <div class="platform supported">
+                        <strong>Claude</strong><br>
+                        <small>claude.ai/share/*</small>
+                    </div>
+                    <div class="platform supported">
+                        <strong>Gemini</strong><br>
+                        <small>gemini.google.com/share/*</small>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>📌 重要:</strong> 完全公開されている共有リンクのみ対応しています。ログインが必要なページや、認証トークンが必要なページでは動作しません。
+                </div>
+            </div>
+
+            <!-- 機能 -->
+            <div class="section">
+                <h2>⚙️ 機能</h2>
+                <ul style="margin-left: 20px;">
+                    <li><strong>自動スクロール:</strong> ページ全体を自動的にスクロールして、すべてのメッセージを読み込みます</li>
+                    <li><strong>折りたたみ展開:</strong> 「もっと見る」などで折りたたまれた長文を自動展開します</li>
+                    <li><strong>整形表示:</strong> ユーザーとAIのメッセージを区別しやすく整形します</li>
+                    <li><strong>印刷最適化:</strong> ブラウザの印刷機能でPDF化しやすいレイアウトを提供します</li>
+                    <li><strong>コード保持:</strong> コードブロックのシンタックスハイライトと等幅フォント表示</li>
+                    <li><strong>完全ローカル:</strong> データは外部に送信されず、すべてブラウザ内で処理されます</li>
+                </ul>
+            </div>
+
+            <!-- 使用手順詳細 -->
+            <div class="section">
+                <h2>📖 詳細手順</h2>
+
+                <h3>1. Bookmarkletのコピー</h3>
+                <p>上の「📋 Bookmarklet をコピー」ボタンをクリックすると、自動的にクリップボードにコピーされます。</p>
+
+                <h3>2. ブックマークへの登録方法</h3>
+                <p><strong>Chrome / Edge:</strong></p>
+                <ol style="margin-left: 30px;">
+                    <li>ブックマークバーを表示（Ctrl+Shift+B / Cmd+Shift+B）</li>
+                    <li>ブックマークバーの空白部分を右クリック → 「ページを追加」</li>
+                    <li>名前: <code>Export Chat</code></li>
+                    <li>URL: コピーしたコードを貼り付け</li>
+                    <li>保存</li>
+                </ol>
+
+                <p><strong>Firefox:</strong></p>
+                <ol style="margin-left: 30px;">
+                    <li>ブックマークバーを表示（Ctrl+Shift+B / Cmd+Shift+B）</li>
+                    <li>ブックマークバーを右クリック → 「新しいブックマーク」</li>
+                    <li>名前: <code>Export Chat</code></li>
+                    <li>URL: コピーしたコードを貼り付け</li>
+                    <li>保存</li>
+                </ol>
+
+                <h3>3. 使用方法</h3>
+                <ol style="margin-left: 30px;">
+                    <li>ChatGPT/Claude/Geminiの公開共有リンクをブラウザで開く</li>
+                    <li>ページが完全に読み込まれるまで待つ</li>
+                    <li>ブックマークバーの「Export Chat」をクリック</li>
+                    <li>設定ダイアログが表示されるので、オプションを選択</li>
+                    <li>「抽出開始」ボタンをクリック</li>
+                    <li>新しいタブに整形されたページが開く</li>
+                    <li>ブラウザの印刷機能（Ctrl+P / Cmd+P）でPDF保存</li>
+                </ol>
+            </div>
+
+            <!-- セキュリティ -->
+            <div class="section">
+                <h2>🔒 セキュリティとプライバシー</h2>
+                <div class="success-box">
+                    <strong>✓ 完全ローカル処理:</strong> すべての処理はブラウザ内で完結します。会話データは外部サーバーに送信されません。
+                </div>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>ネットワークリクエストは一切発生しません</li>
+                    <li>抽出データはメモリ上でのみ処理され、保存されません</li>
+                    <li>オープンソースコード（このページのソース参照可能）</li>
+                    <li>外部ライブラリへの依存なし（Vanilla JavaScript）</li>
+                </ul>
+            </div>
+
+            <!-- 制限事項 -->
+            <div class="section limitations">
+                <h2>⚠️ 既知の制限</h2>
+                <div class="warning-box">
+                    以下の制限事項をご理解の上ご使用ください。
+                </div>
+                <ul>
+                    <li><strong>サイトUI変更:</strong> ChatGPT/Claude/Gemini側のUI変更により、将来的に動作しなくなる可能性があります</li>
+                    <li><strong>仮想スクロール:</strong> 自動スクロールを有効にしないと、画面外のメッセージが取得できない場合があります</li>
+                    <li><strong>画像の制限:</strong> クロスオリジン制限により、一部の画像は取得できない場合があります</li>
+                    <li><strong>リッチコンテンツ:</strong> 特殊なウィジェットやインタラクティブ要素は完全再現できません</li>
+                    <li><strong>無効なリンク:</strong> 共有リンクが削除・無効化されている場合は取得できません</li>
+                    <li><strong>認証必須ページ:</strong> ログインが必要なページでは動作しません</li>
+                </ul>
+            </div>
+
+            <!-- トラブルシューティング -->
+            <div class="section">
+                <h2>🔧 トラブルシューティング</h2>
+
+                <h3>Q: 一部のメッセージが抽出されない</h3>
+                <p>A: 「自動スクロールして全文ロード」オプションを有効にしてください。ページを最後までスクロールしないと、仮想スクロールにより一部のメッセージがDOM上に存在しない場合があります。</p>
+
+                <h3>Q: 長文が途中で切れている</h3>
+                <p>A: 「折りたたみを展開」オプションを有効にしてください。「もっと見る」ボタンが自動的にクリックされます。</p>
+
+                <h3>Q: エラーが表示される</h3>
+                <p>A: 以下を確認してください:</p>
+                <ul style="margin-left: 30px;">
+                    <li>正しい共有ページ（ChatGPT/Claude/Gemini）で実行しているか</li>
+                    <li>ページが完全に読み込まれているか</li>
+                    <li>ブラウザの JavaScript が有効になっているか</li>
+                </ul>
+
+                <h3>Q: PDF化するとレイアウトが崩れる</h3>
+                <p>A: ブラウザの印刷設定で「背景のグラフィック」を有効にしてください。また、余白設定を調整することで改善する場合があります。</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Chat Export Tool v1.0 | 完全ローカル処理 | データ送信なし</p>
+            <p style="font-size: 0.9em; margin-top: 5px;">このツールは教育目的で作成されています。利用は各サービスの利用規約に従ってください。</p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // BOOKMARKLET CODE (will be embedded)
+        // ============================================
+        const bookmarkletCode = (function() {
+            // This is the actual code that will run on the chat pages
+            const code = function() {
+                // Main namespace to avoid conflicts
+                const ChatExporter = {
+                    version: '1.0.0',
+
+                    // Configuration
+                    config: {
+                        autoScroll: true,
+                        expandCollapsed: true,
+                        scrollDelay: 500,
+                        maxScrollAttempts: 50,
+                        expandDelay: 300
+                    },
+
+                    // Detect which platform we're on
+                    detectSource: function() {
+                        const hostname = window.location.hostname;
+                        const pathname = window.location.pathname;
+
+                        if (hostname.includes('chatgpt.com')) return 'chatgpt';
+                        if (hostname.includes('claude.ai')) return 'claude';
+                        if (hostname.includes('gemini.google.com')) return 'gemini';
+
+                        return 'unknown';
+                    },
+
+                    // Show UI modal for settings
+                    showUI: function() {
+                        const source = this.detectSource();
+
+                        // Create modal
+                        const modal = document.createElement('div');
+                        modal.id = 'chat-exporter-modal';
+                        modal.innerHTML = `
+                            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 999999; display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                <div style="background: white; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                                    <h2 style="margin: 0 0 10px 0; color: #333; font-size: 24px;">Chat Export Tool</h2>
+                                    <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">検出: <strong>${source.toUpperCase()}</strong></p>
+
+                                    <div style="margin-bottom: 20px;">
+                                        <label style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
+                                            <input type="checkbox" id="ce-auto-scroll" checked style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                            <span style="font-size: 14px; color: #333;">
+                                                <strong>自動スクロールして全文ロード</strong><br>
+                                                <small style="color: #666;">すべてのメッセージを読み込みます（推奨）</small>
+                                            </span>
+                                        </label>
+
+                                        <label style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
+                                            <input type="checkbox" id="ce-expand" checked style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                            <span style="font-size: 14px; color: #333;">
+                                                <strong>折りたたみを展開</strong><br>
+                                                <small style="color: #666;">「もっと見る」ボタンを自動クリック</small>
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    <div id="ce-status" style="margin-bottom: 15px; padding: 10px; background: #f0f0f0; border-radius: 6px; display: none; font-size: 14px; color: #333;">
+                                        準備中...
+                                    </div>
+
+                                    <div style="display: flex; gap: 10px;">
+                                        <button id="ce-start" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                                            抽出開始
+                                        </button>
+                                        <button id="ce-cancel" style="background: #6c757d; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 16px; cursor: pointer;">
+                                            キャンセル
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
+                        document.body.appendChild(modal);
+
+                        // Event listeners
+                        document.getElementById('ce-cancel').onclick = () => {
+                            document.body.removeChild(modal);
+                        };
+
+                        document.getElementById('ce-start').onclick = async () => {
+                            this.config.autoScroll = document.getElementById('ce-auto-scroll').checked;
+                            this.config.expandCollapsed = document.getElementById('ce-expand').checked;
+
+                            const statusEl = document.getElementById('ce-status');
+                            statusEl.style.display = 'block';
+
+                            try {
+                                await this.extract(statusEl);
+                                document.body.removeChild(modal);
+                            } catch (error) {
+                                statusEl.innerHTML = `<span style="color: #dc3545;">エラー: ${error.message}</span>`;
+                                statusEl.style.background = '#f8d7da';
+                            }
+                        };
+                    },
+
+                    // Auto scroll to load all messages
+                    autoScrollToLoadAll: async function(statusEl) {
+                        if (!this.config.autoScroll) return;
+
+                        statusEl.textContent = 'スクロール中...';
+
+                        let lastHeight = 0;
+                        let attempts = 0;
+
+                        while (attempts < this.config.maxScrollAttempts) {
+                            window.scrollTo(0, document.body.scrollHeight);
+                            await new Promise(resolve => setTimeout(resolve, this.config.scrollDelay));
+
+                            const currentHeight = document.body.scrollHeight;
+                            if (currentHeight === lastHeight) {
+                                break;
+                            }
+
+                            lastHeight = currentHeight;
+                            attempts++;
+                        }
+
+                        // Scroll back to top
+                        window.scrollTo(0, 0);
+                    },
+
+                    // Expand all collapsed content
+                    expandAllCollapsed: async function(statusEl) {
+                        if (!this.config.expandCollapsed) return;
+
+                        statusEl.textContent = '折りたたみを展開中...';
+
+                        // Common selectors for "Show more" buttons
+                        const selectors = [
+                            'button[aria-label*="more"]',
+                            'button:has-text("Show more")',
+                            'button:has-text("もっと見る")',
+                            'button.expand',
+                            '[class*="expand"]',
+                            '[class*="show-more"]'
+                        ];
+
+                        // Try to find and click expand buttons
+                        const buttons = document.querySelectorAll('button');
+                        for (const button of buttons) {
+                            const text = button.textContent.toLowerCase();
+                            if (text.includes('more') || text.includes('続き') || text.includes('もっと')) {
+                                button.click();
+                                await new Promise(resolve => setTimeout(resolve, this.config.expandDelay));
+                            }
+                        }
+                    },
+
+                    // Extract messages based on platform
+                    extractMessages: function(source) {
+                        const extractors = {
+                            chatgpt: this.extractChatGPT.bind(this),
+                            claude: this.extractClaude.bind(this),
+                            gemini: this.extractGemini.bind(this),
+                            unknown: this.extractFallback.bind(this)
+                        };
+
+                        const extractor = extractors[source] || extractors.unknown;
+                        return extractor();
+                    },
+
+                    // ChatGPT extractor
+                    extractChatGPT: function() {
+                        const messages = [];
+
+                        // Try multiple selectors
+                        const messageElements = document.querySelectorAll('[data-message-author-role], .group.w-full, article');
+
+                        messageElements.forEach(el => {
+                            const role = el.getAttribute('data-message-author-role') ||
+                                        (el.textContent.trim().startsWith('You') ? 'user' : 'assistant');
+
+                            const blocks = this.extractBlocks(el);
+
+                            if (blocks.length > 0) {
+                                messages.push({ role, blocks });
+                            }
+                        });
+
+                        return messages;
+                    },
+
+                    // Claude extractor
+                    extractClaude: function() {
+                        const messages = [];
+
+                        // Claude uses different class names
+                        const messageElements = document.querySelectorAll('[class*="message"], [class*="Message"]');
+
+                        messageElements.forEach(el => {
+                            // Detect role from classes or content
+                            const className = el.className;
+                            const role = className.includes('user') || className.includes('human') ? 'user' : 'assistant';
+
+                            const blocks = this.extractBlocks(el);
+
+                            if (blocks.length > 0) {
+                                messages.push({ role, blocks });
+                            }
+                        });
+
+                        return messages;
+                    },
+
+                    // Gemini extractor
+                    extractGemini: function() {
+                        const messages = [];
+
+                        const messageElements = document.querySelectorAll('.message-content, [class*="message"], message-');
+
+                        messageElements.forEach(el => {
+                            const role = el.closest('[class*="user"]') ? 'user' : 'assistant';
+                            const blocks = this.extractBlocks(el);
+
+                            if (blocks.length > 0) {
+                                messages.push({ role, blocks });
+                            }
+                        });
+
+                        return messages;
+                    },
+
+                    // Fallback extractor (heuristic)
+                    extractFallback: function() {
+                        const messages = [];
+
+                        // Look for common patterns
+                        const allElements = document.querySelectorAll('div[class*="message"], article, .chat, [role="article"]');
+
+                        allElements.forEach(el => {
+                            const blocks = this.extractBlocks(el);
+
+                            if (blocks.length > 0) {
+                                messages.push({
+                                    role: 'unknown',
+                                    blocks
+                                });
+                            }
+                        });
+
+                        return messages;
+                    },
+
+                    // Extract content blocks from an element
+                    extractBlocks: function(element) {
+                        const blocks = [];
+
+                        // Extract code blocks
+                        element.querySelectorAll('pre, code').forEach(code => {
+                            const lang = code.className.match(/language-(\w+)/)?.[1] || '';
+                            blocks.push({
+                                type: 'code',
+                                content: code.textContent,
+                                lang
+                            });
+                        });
+
+                        // Extract images
+                        element.querySelectorAll('img').forEach(img => {
+                            blocks.push({
+                                type: 'image',
+                                src: img.src,
+                                alt: img.alt || ''
+                            });
+                        });
+
+                        // Extract text (if no specific blocks found, get all text)
+                        if (blocks.length === 0) {
+                            const text = this.getCleanText(element);
+                            if (text) {
+                                blocks.push({
+                                    type: 'text',
+                                    content: text
+                                });
+                            }
+                        }
+
+                        return blocks;
+                    },
+
+                    // Get clean text from element
+                    getCleanText: function(element) {
+                        // Clone to avoid modifying original
+                        const clone = element.cloneNode(true);
+
+                        // Remove script and style elements
+                        clone.querySelectorAll('script, style').forEach(el => el.remove());
+
+                        // Get text and clean up
+                        return clone.textContent.trim();
+                    },
+
+                    // Main extraction flow
+                    extract: async function(statusEl) {
+                        const source = this.detectSource();
+
+                        // Step 1: Auto scroll
+                        await this.autoScrollToLoadAll(statusEl);
+
+                        // Step 2: Expand collapsed
+                        await this.expandAllCollapsed(statusEl);
+
+                        // Step 3: Extract
+                        statusEl.textContent = 'メッセージを抽出中...';
+                        const messages = this.extractMessages(source);
+
+                        if (messages.length === 0) {
+                            throw new Error('メッセージが見つかりませんでした。ページを確認してください。');
+                        }
+
+                        // Step 4: Render
+                        statusEl.textContent = '印刷ビューを生成中...';
+                        this.renderPrintView({
+                            source,
+                            title: document.title,
+                            url: window.location.href,
+                            capturedAt: new Date().toISOString(),
+                            messages
+                        });
+
+                        statusEl.textContent = '完了！';
+                    },
+
+                    // Render print view in new tab
+                    renderPrintView: function(conversation) {
+                        const newWindow = window.open('', '_blank');
+
+                        const html = this.generateHTML(conversation);
+
+                        newWindow.document.write(html);
+                        newWindow.document.close();
+                    },
+
+                    // Generate HTML for print view
+                    generateHTML: function(conv) {
+                        const messagesHTML = conv.messages.map((msg, idx) => {
+                            const blocksHTML = msg.blocks.map(block => {
+                                switch (block.type) {
+                                    case 'code':
+                                        return `<pre><code class="language-${block.lang}">${this.escapeHTML(block.content)}</code></pre>`;
+                                    case 'image':
+                                        return `<img src="${block.src}" alt="${this.escapeHTML(block.alt)}" style="max-width: 100%; height: auto;">`;
+                                    case 'text':
+                                    default:
+                                        return `<p>${this.escapeHTML(block.content).replace(/\n/g, '<br>')}</p>`;
+                                }
+                            }).join('');
+
+                            const roleClass = msg.role === 'user' ? 'user' : 'assistant';
+                            const roleLabel = msg.role === 'user' ? 'ユーザー' : 'AI';
+
+                            return `
+                                <div class="message ${roleClass}">
+                                    <div class="message-header">${roleLabel}</div>
+                                    <div class="message-content">${blocksHTML}</div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        return `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${this.escapeHTML(conv.title)}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+
+        .header .meta {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .header .meta a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .message {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            break-inside: avoid;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .message.assistant {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .message-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .message.user .message-header {
+            color: #1976d2;
+        }
+
+        .message.assistant .message-header {
+            color: #7b1fa2;
+        }
+
+        .message-content p {
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+
+            .message {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            pre {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                white-space: pre-wrap;
+            }
+
+            @page {
+                margin: 2cm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>${this.escapeHTML(conv.title)}</h1>
+            <div class="meta">
+                <div>ソース: <strong>${conv.source.toUpperCase()}</strong></div>
+                <div>URL: <a href="${conv.url}">${conv.url}</a></div>
+                <div>生成日時: ${new Date(conv.capturedAt).toLocaleString('ja-JP')}</div>
+                <div style="margin-top: 10px; color: #999; font-size: 12px;">
+                    Ctrl/Cmd+P で印刷 → PDF保存できます
+                </div>
+            </div>
+        </div>
+
+        <div class="messages">
+            ${messagesHTML}
+        </div>
+
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #999; font-size: 12px;">
+            Generated by Chat Export Tool v${this.version}
+        </div>
+    </div>
+</body>
+</html>
+                        `;
+                    },
+
+                    // Escape HTML
+                    escapeHTML: function(str) {
+                        const div = document.createElement('div');
+                        div.textContent = str;
+                        return div.innerHTML;
+                    },
+
+                    // Initialize
+                    init: function() {
+                        this.showUI();
+                    }
+                };
+
+                // Run
+                ChatExporter.init();
+            };
+
+            // Convert function to string and wrap in IIFE
+            return `javascript:(${code.toString()})();`;
+        })();
+
+        // ============================================
+        // UI INTERACTIONS
+        // ============================================
+        document.getElementById('copyBookmarklet').addEventListener('click', async function() {
+            const statusEl = document.getElementById('status');
+
+            try {
+                await navigator.clipboard.writeText(bookmarkletCode);
+                statusEl.textContent = '✓ クリップボードにコピーしました！';
+                statusEl.className = 'success-box show';
+
+                setTimeout(() => {
+                    statusEl.classList.remove('show');
+                }, 3000);
+            } catch (err) {
+                statusEl.textContent = '⚠ コピーに失敗しました。手動でコピーしてください。';
+                statusEl.className = 'warning-box show';
+
+                // Show the code in a prompt for manual copying
+                prompt('以下のコードをコピーしてください:', bookmarkletCode);
+            }
+        });
+    </script>
+</body>
+</html>
