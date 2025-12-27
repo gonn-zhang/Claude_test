@@ -13,6 +13,7 @@ import pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import io
+import re
 from datetime import datetime
 
 # ページ設定
@@ -30,6 +31,8 @@ YouTubeチャンネルの全動画情報を取得し、CSVファイルとして�
 **取得できる情報:**
 - 動画タイトル
 - 動画URL
+- 動画種別（通常動画 / ライブ配信 / ショート）
+- 動画の長さ
 - 再生回数
 - 高評価数
 - コメント数
@@ -128,7 +131,7 @@ def get_videos_info(youtube, video_ids, progress_bar, status_text):
     for i in range(0, total, 50):
         batch_ids = video_ids[i:i+50]
         video_info = youtube.videos().list(
-            part='snippet,statistics',
+            part='snippet,statistics,contentDetails,liveStreamingDetails',
             id=','.join(batch_ids)
         ).execute()
 
@@ -139,6 +142,56 @@ def get_videos_info(youtube, video_ids, progress_bar, status_text):
         status_text.text(f"動画情報取得中... {min(i+50, total)}/{total}件")
 
     return videos
+
+
+def parse_duration(duration_str):
+    """ISO 8601形式の動画時間をパースして秒数と表示用文字列を返す"""
+    if not duration_str:
+        return 0, "不明"
+
+    # ISO 8601形式: PT1H2M3S = 1時間2分3秒
+    pattern = r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
+    match = re.match(pattern, duration_str)
+
+    if not match:
+        return 0, "不明"
+
+    hours = int(match.group(1) or 0)
+    minutes = int(match.group(2) or 0)
+    seconds = int(match.group(3) or 0)
+
+    total_seconds = hours * 3600 + minutes * 60 + seconds
+
+    # 表示用フォーマット
+    if hours > 0:
+        display = f"{hours}:{minutes:02d}:{seconds:02d}"
+    else:
+        display = f"{minutes}:{seconds:02d}"
+
+    return total_seconds, display
+
+
+def detect_video_type(video):
+    """動画種別を判定（通常動画 / ライブ配信 / ショート）"""
+    # ライブ配信の判定
+    # liveStreamingDetailsが存在する = ライブ配信（過去含む）
+    if 'liveStreamingDetails' in video:
+        return "ライブ配信"
+
+    # liveBroadcastContentが"live"または"upcoming"
+    live_status = video['snippet'].get('liveBroadcastContent', 'none')
+    if live_status in ['live', 'upcoming']:
+        return "ライブ配信"
+
+    # ショート動画の判定
+    # 動画時間が60秒以下
+    duration_str = video.get('contentDetails', {}).get('duration', '')
+    total_seconds, _ = parse_duration(duration_str)
+
+    if 0 < total_seconds <= 60:
+        return "ショート"
+
+    return "通常動画"
 
 
 def format_videos_to_dataframe(videos):
@@ -154,9 +207,18 @@ def format_videos_to_dataframe(videos):
         except:
             formatted_date = published_at
 
+        # 動画種別を判定
+        video_type = detect_video_type(video)
+
+        # 動画の長さを取得
+        duration_str = video.get('contentDetails', {}).get('duration', '')
+        _, duration_display = parse_duration(duration_str)
+
         data.append({
             'タイトル': video['snippet']['title'],
             '動画URL': f"https://youtube.com/watch?v={video['id']}",
+            '種別': video_type,
+            '動画時間': duration_display,
             '再生回数': int(video['statistics'].get('viewCount', 0)),
             '高評価数': int(video['statistics'].get('likeCount', 0)),
             'コメント数': int(video['statistics'].get('commentCount', 0)),
@@ -240,6 +302,14 @@ if st.button("🚀 動画リストを取得", type="primary", use_container_widt
         st.divider()
         st.subheader(f"📊 取得結果: {len(df)}件の動画")
 
+        # 種別ごとの件数
+        type_counts = df['種別'].value_counts()
+        normal_count = type_counts.get('通常動画', 0)
+        live_count = type_counts.get('ライブ配信', 0)
+        short_count = type_counts.get('ショート', 0)
+
+        st.markdown(f"**種別内訳:** 📹 通常動画 {normal_count}件 ／ 🔴 ライブ配信 {live_count}件 ／ ⚡ ショート {short_count}件")
+
         # 統計情報
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -256,6 +326,8 @@ if st.button("🚀 動画リストを取得", type="primary", use_container_widt
             height=400,
             column_config={
                 "動画URL": st.column_config.LinkColumn("動画URL"),
+                "種別": st.column_config.TextColumn("種別", width="small"),
+                "動画時間": st.column_config.TextColumn("動画時間", width="small"),
                 "再生回数": st.column_config.NumberColumn("再生回数", format="%d"),
                 "高評価数": st.column_config.NumberColumn("高評価数", format="%d"),
                 "コメント数": st.column_config.NumberColumn("コメント数", format="%d"),
