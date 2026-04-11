@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Export Tool - Bookmarklet Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .section h3 {
+            color: #764ba2;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .bookmarklet-box {
+            background: #f7f7f7;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .bookmarklet-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .bookmarklet-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .bookmarklet-button:active {
+            transform: translateY(0);
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            margin: 15px 0;
+            padding-left: 50px;
+            position: relative;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .supported-platforms {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .platform {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+
+        .platform.supported {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .limitations ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .limitations li {
+            margin: 8px 0;
+        }
+
+        #status {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        #status.show {
+            display: block;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Chat Export Tool</h1>
+            <p>ChatGPT / Claude / Gemini の公開チャットをPDF化</p>
+        </div>
+
+        <div class="content">
+            <!-- 使い方セクション -->
+            <div class="section">
+                <h2>🚀 使い方（3ステップ）</h2>
+                <ol class="steps">
+                    <li>
+                        <strong>Bookmarkletを取得</strong><br>
+                        下のボタンをクリックしてブックマークレットをクリップボードにコピーします。
+                    </li>
+                    <li>
+                        <strong>ブックマークに登録</strong><br>
+                        ブラウザのブックマークバーに新しいブックマークを作成し、URLにコピーしたコードを貼り付けます。
+                    </li>
+                    <li>
+                        <strong>共有ページで実行</strong><br>
+                        ChatGPT/Claude/Geminiの公開共有リンクを開き、登録したブックマークをクリックします。
+                    </li>
+                </ol>
+
+                <div class="bookmarklet-box">
+                    <button id="copyBookmarklet" class="bookmarklet-button">
+                        📋 Bookmarklet をコピー
+                    </button>
+                    <div id="status"></div>
+                    <p style="margin-top: 15px; color: #6c757d; font-size: 0.9em;">
+                        クリック後、ブラウザのブックマークマネージャーで新規ブックマークを作成し、<br>
+                        URLフィールドに貼り付けてください。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 対応プラットフォーム -->
+            <div class="section">
+                <h2>✅ 対応プラットフォーム</h2>
+                <div class="supported-platforms">
+                    <div class="platform supported">
+                        <strong>ChatGPT</strong><br>
+                        <small>chatgpt.com/share/*</small>
+                    </div>
+                    <div class="platform supported">
+                        <strong>Claude</strong><br>
+                        <small>claude.ai/share/*</small>
+                    </div>
+                    <div class="platform supported">
+                        <strong>Gemini</strong><br>
+                        <small>gemini.google.com/share/*</small>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>📌 重要:</strong> 完全公開されている共有リンクのみ対応しています。ログインが必要なページや、認証トークンが必要なページでは動作しません。
+                </div>
+            </div>
+
+            <!-- 機能 -->
+            <div class="section">
+                <h2>⚙️ 機能</h2>
+                <ul style="margin-left: 20px;">
+                    <li><strong>ワンクリック起動:</strong> ブックマークをクリックするだけで自動的に全処理が実行されます</li>
+                    <li><strong>進捗表示:</strong> 右上に処理状況をリアルタイム表示（スクロール→展開→抽出→生成）</li>
+                    <li><strong>自動スクロール:</strong> 仮想スクロールに対応し、すべてのメッセージを自動読み込み</li>
+                    <li><strong>自動展開:</strong> 「もっと見る」ボタンを自動クリックして長文を完全表示</li>
+                    <li><strong>賢い抽出:</strong> 複数のセレクタ戦略でユーザーとAIのメッセージを正確に識別</li>
+                    <li><strong>整形表示:</strong> グラデーション背景でユーザーとAIを視覚的に区別</li>
+                    <li><strong>印刷最適化:</strong> 改ページ制御でメッセージが途中で分割されないレイアウト</li>
+                    <li><strong>コード保持:</strong> 等幅フォントと言語タグでコードブロックを美しく表示</li>
+                    <li><strong>完全ローカル:</strong> データは外部に送信されず、すべてブラウザ内で処理</li>
+                </ul>
+            </div>
+
+            <!-- 使用手順詳細 -->
+            <div class="section">
+                <h2>📖 詳細手順</h2>
+
+                <h3>1. Bookmarkletのコピー</h3>
+                <p>上の「📋 Bookmarklet をコピー」ボタンをクリックすると、自動的にクリップボードにコピーされます。</p>
+
+                <h3>2. ブックマークへの登録方法</h3>
+                <p><strong>Chrome / Edge:</strong></p>
+                <ol style="margin-left: 30px;">
+                    <li>ブックマークバーを表示（Ctrl+Shift+B / Cmd+Shift+B）</li>
+                    <li>ブックマークバーの空白部分を右クリック → 「ページを追加」</li>
+                    <li>名前: <code>Export Chat</code></li>
+                    <li>URL: コピーしたコードを貼り付け</li>
+                    <li>保存</li>
+                </ol>
+
+                <p><strong>Firefox:</strong></p>
+                <ol style="margin-left: 30px;">
+                    <li>ブックマークバーを表示（Ctrl+Shift+B / Cmd+Shift+B）</li>
+                    <li>ブックマークバーを右クリック → 「新しいブックマーク」</li>
+                    <li>名前: <code>Export Chat</code></li>
+                    <li>URL: コピーしたコードを貼り付け</li>
+                    <li>保存</li>
+                </ol>
+
+                <h3>3. 使用方法</h3>
+                <ol style="margin-left: 30px;">
+                    <li>ChatGPT/Claude/Geminiの公開共有リンクをブラウザで開く</li>
+                    <li>ページが完全に読み込まれるまで待つ</li>
+                    <li>ブックマークバーの「Export Chat」をクリック</li>
+                    <li><strong>自動的に処理が開始</strong>され、右上に進捗が表示されます</li>
+                    <li>完了すると新しいタブに整形ページが自動で開きます</li>
+                    <li>ブラウザの印刷機能（Ctrl+P / Cmd+P）でPDF保存</li>
+                </ol>
+            </div>
+
+            <!-- セキュリティ -->
+            <div class="section">
+                <h2>🔒 セキュリティとプライバシー</h2>
+                <div class="success-box">
+                    <strong>✓ 完全ローカル処理:</strong> すべての処理はブラウザ内で完結します。会話データは外部サーバーに送信されません。
+                </div>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>ネットワークリクエストは一切発生しません</li>
+                    <li>抽出データはメモリ上でのみ処理され、保存されません</li>
+                    <li>オープンソースコード（このページのソース参照可能）</li>
+                    <li>外部ライブラリへの依存なし（Vanilla JavaScript）</li>
+                </ul>
+            </div>
+
+            <!-- 制限事項 -->
+            <div class="section limitations">
+                <h2>⚠️ 既知の制限</h2>
+                <div class="warning-box">
+                    以下の制限事項をご理解の上ご使用ください。
+                </div>
+                <ul>
+                    <li><strong>サイトUI変更:</strong> ChatGPT/Claude/Gemini側のUI変更により、将来的に動作しなくなる可能性があります</li>
+                    <li><strong>仮想スクロール:</strong> 自動スクロールを有効にしないと、画面外のメッセージが取得できない場合があります</li>
+                    <li><strong>画像の制限:</strong> クロスオリジン制限により、一部の画像は取得できない場合があります</li>
+                    <li><strong>リッチコンテンツ:</strong> 特殊なウィジェットやインタラクティブ要素は完全再現できません</li>
+                    <li><strong>無効なリンク:</strong> 共有リンクが削除・無効化されている場合は取得できません</li>
+                    <li><strong>認証必須ページ:</strong> ログインが必要なページでは動作しません</li>
+                </ul>
+            </div>
+
+            <!-- トラブルシューティング -->
+            <div class="section">
+                <h2>🔧 トラブルシューティング</h2>
+
+                <h3>Q: 一部のメッセージが抽出されない</h3>
+                <p>A: 「自動スクロールして全文ロード」オプションを有効にしてください。ページを最後までスクロールしないと、仮想スクロールにより一部のメッセージがDOM上に存在しない場合があります。</p>
+
+                <h3>Q: 長文が途中で切れている</h3>
+                <p>A: 「折りたたみを展開」オプションを有効にしてください。「もっと見る」ボタンが自動的にクリックされます。</p>
+
+                <h3>Q: エラーが表示される</h3>
+                <p>A: 以下を確認してください:</p>
+                <ul style="margin-left: 30px;">
+                    <li>正しい共有ページ（ChatGPT/Claude/Gemini）で実行しているか</li>
+                    <li>ページが完全に読み込まれているか</li>
+                    <li>ブラウザの JavaScript が有効になっているか</li>
+                </ul>
+
+                <h3>Q: PDF化するとレイアウトが崩れる</h3>
+                <p>A: ブラウザの印刷設定で「背景のグラフィック」を有効にしてください。また、余白設定を調整することで改善する場合があります。</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Chat Export Tool v1.0 | 完全ローカル処理 | データ送信なし</p>
+            <p style="font-size: 0.9em; margin-top: 5px;">このツールは教育目的で作成されています。利用は各サービスの利用規約に従ってください。</p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // BOOKMARKLET CODE (will be embedded)
+        // ============================================
+        const bookmarkletCode = `javascript:(function(){const s=location.hostname.includes('chatgpt.com')?'c':location.hostname.includes('claude.ai')?'l':location.hostname.includes('gemini.google')?'g':'u',d=document.createElement('div');d.style.cssText='position:fixed;top:10px;right:10px;background:#667eea;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999999;font:14px system-ui;box-shadow:0 4px 12px rgba(0,0,0,.3)';d.textContent='処理中...';document.body.appendChild(d);const u=(t)=>d.textContent=t;setTimeout(async()=>{try{u('スクロール中...');let h=0,i=0;while(i<30){window.scrollTo(0,document.body.scrollHeight);await new Promise(r=>setTimeout(r,300));if(document.body.scrollHeight===h)break;h=document.body.scrollHeight;i++}window.scrollTo(0,0);await new Promise(r=>setTimeout(r,500));u('展開中...');document.querySelectorAll('button').forEach(b=>{const t=b.textContent.toLowerCase();if(t.includes('more')||t.includes('続き')||t.includes('もっと'))try{b.click()}catch(e){}});await new Promise(r=>setTimeout(r,500));u('抽出中...');const m=[];let els=[];if(s==='c'){els=document.querySelectorAll('[data-message-author-role]');if(els.length<2)els=document.querySelectorAll('div.group.w-full');if(els.length<2)els=document.querySelectorAll('article')}else if(s==='l'){els=document.querySelectorAll('div[class*="font-user"],div[class*="font-claude"]');if(els.length<2)els=document.querySelectorAll('[class*="essage"]')}else if(s==='g'){els=document.querySelectorAll('user-query-content,message-content');if(els.length<2)els=document.querySelectorAll('[class*="user-query"],[class*="model-response"]');if(els.length<2)els=document.querySelectorAll('#chat-history>*');if(els.length<2)els=document.querySelectorAll('[class*="message"]')}else{els=document.querySelectorAll('div[class*="message"],article,[role="article"]')}if(els.length===0)throw new Error('メッセージ要素が見つかりません');els.forEach((el,idx)=>{const txt=el.textContent.trim();if(txt.length<10)return;let role='assistant';if(s==='c'){const attr=el.getAttribute('data-message-author-role');role=attr==='user'?'user':attr==='assistant'?'assistant':el.textContent.match(/^You/)?'user':'assistant'}else if(s==='l'){const cls=el.className.toLowerCase();role=cls.includes('user')||cls.includes('human')?'user':'assistant'}else if(s==='g'){const tag=el.tagName.toLowerCase();role=tag==='user-query-content'||(tag.includes('user')||tag.includes('query'))?'user':el.className&&(el.className.toLowerCase().includes('user')||el.className.toLowerCase().includes('query'))?'user':'assistant'}else{role=idx%2===0?'user':'assistant'}const codes=[],imgs=[];el.querySelectorAll('pre code,pre').forEach(c=>{const pre=c.closest('pre')||c,lang=c.className.match(/language-(\\w+)/)?.[1]||'',code=c.textContent;if(code&&code.length>0)codes.push({lang:lang,code:code})});el.querySelectorAll('img').forEach(i=>imgs.push({src:i.src,alt:i.alt||''}));const cl=el.cloneNode(true);cl.querySelectorAll('pre,code,script,style,button,svg').forEach(e=>e.remove());const plain=cl.textContent.replace(/\\s+/g,' ').trim();if(plain.length>5||codes.length>0||imgs.length>0){m.push({role:role,text:plain,codes:codes,imgs:imgs})}});if(m.length===0)throw new Error('有効なメッセージが抽出できませんでした');u('生成中... ('+m.length+'件)');const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};const html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>'+esc(document.title)+'</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font:15px/1.7 -apple-system,system-ui,sans-serif;color:#2c3e50;background:#f5f5f5;padding:20px}.c{max-width:900px;margin:0 auto;background:#fff;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.h{margin-bottom:30px;padding-bottom:20px;border-bottom:2px solid #e0e0e0}.h h1{font-size:26px;margin-bottom:15px;color:#1a1a1a}.h .m{font-size:13px;color:#666;line-height:1.8}.h a{color:#667eea}.msg{margin:20px 0;padding:20px;border-radius:8px;break-inside:avoid}.u{background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);border-left:4px solid #2196f3}.a{background:linear-gradient(135deg,#f3e5f5 0%,#e1bee7 100%);border-left:4px solid #9c27b0}.hd{font:700 12px/1 system-ui;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}.u .hd{color:#1565c0}.a .hd{color:#6a1b9a}.txt{margin:10px 0;white-space:pre-wrap;word-wrap:break-word}pre{background:#1e1e1e;color:#d4d4d4;padding:15px;border-radius:6px;overflow-x:auto;margin:10px 0;font:13px/1.5 Consolas,monospace}img{max-width:100%;height:auto;margin:10px 0;border-radius:4px}@media print{body{background:#fff;padding:0}.c{box-shadow:none;padding:20px}.msg,pre{break-inside:avoid;page-break-inside:avoid}@page{margin:2cm}}</style></head><body><div class="c"><div class="h"><h1>'+esc(document.title||'Chat Export')+'</h1><div class="m"><div>ソース: <b>'+s.toUpperCase()+'</b> | メッセージ: <b>'+m.length+'</b></div><div>URL: <a href="'+esc(location.href)+'">'+esc(location.href)+'</a></div><div>生成: '+new Date().toLocaleString('ja-JP')+'</div><div style="margin-top:8px;color:#999;font-size:11px">Ctrl/Cmd+P で印刷→PDF保存</div></div></div>'+m.map(msg=>{const isU=msg.role==='user';return '<div class="msg '+(isU?'u':'a')+'"><div class="hd">'+(isU?'👤 ユーザー':'🤖 AI')+'</div>'+(msg.text?'<div class="txt">'+esc(msg.text)+'</div>':'')+msg.codes.map(c=>'<pre><code>'+(c.lang?'<em style="color:#888;font-size:11px;font-style:normal">'+esc(c.lang)+'</em>\\n':'')+esc(c.code)+'</code></pre>').join('')+msg.imgs.map(i=>'<img src="'+esc(i.src)+'" alt="'+esc(i.alt)+'">').join('')+'</div>'}).join('')+'</div></body></html>';const w=window.open();w.document.write(html);w.document.close();document.body.removeChild(d)}catch(e){d.style.background='#dc3545';d.innerHTML='<b>エラー</b><br>'+esc(e.message)+'<br><small>5秒後に閉じます</small>';setTimeout(()=>document.body.removeChild(d),5000)}},100)})();`;
+
+        // ============================================
+        // UI INTERACTIONS
+        // ============================================
+        document.getElementById('copyBookmarklet').addEventListener('click', async function() {
+            const statusEl = document.getElementById('status');
+
+            try {
+                await navigator.clipboard.writeText(bookmarkletCode);
+                statusEl.textContent = '✓ クリップボードにコピーしました！';
+                statusEl.className = 'success-box show';
+
+                setTimeout(() => {
+                    statusEl.classList.remove('show');
+                }, 3000);
+            } catch (err) {
+                statusEl.textContent = '⚠ コピーに失敗しました。手動でコピーしてください。';
+                statusEl.className = 'warning-box show';
+
+                // Show the code in a prompt for manual copying
+                prompt('以下のコードをコピーしてください:', bookmarkletCode);
+            }
+        });
+    </script>
+</body>
+</html>
